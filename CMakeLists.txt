@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.10)
+set(PROJECT_NAME ConstantIndexVector)
+project(${PROJECT_NAME} VERSION 1.0.0 LANGUAGES CXX)
+
+file(GLOB source_files
+"src/main.cpp"
+)
+
+set(SOURCES ${source_files})
+
+# Set build type
+if(NOT CMAKE_BUILD_TYPE)
+set(CMAKE_BUILD_TYPE Release)
+endif(NOT CMAKE_BUILD_TYPE)
+
+add_executable(${PROJECT_NAME} ${WIN32_GUI} ${SOURCES})
+target_include_directories(${PROJECT_NAME} PRIVATE "include")
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
+
+target_compile_options(${PROJECT_NAME} PRIVATE
+  $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -pedantic -Werror>
+)
