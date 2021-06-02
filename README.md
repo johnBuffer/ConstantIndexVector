@@ -61,7 +61,7 @@ Since IDs can be reused you can check the reference's validity like this:
 if (ref) {
     std::cout << *ref << std::endl; // 3
 } else {
-    // The objects has been erased, the reference can return another value. Won't cause a segfault
+    // The objects has been erased, the reference can return another value. (Won't cause a segfault if accessed)
 }
 ```
 
