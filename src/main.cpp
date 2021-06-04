@@ -19,11 +19,7 @@ int32_t main()
 
     civ::Ref<int32_t> ref = v.getRef(id_2);
     std::cout << *ref << std::endl;
-
-    for (int32_t& i : v) {
-        ++i;
-    }
-
+    
     for (int32_t i : v) {
         std::cout << i << std::endl;
     }

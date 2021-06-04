@@ -55,14 +55,14 @@ struct IndexVector
 	uint64_t push_back(const T& obj);
 	void erase(uint64_t id);
 	// Data access by ID
-	T& operator[](uint64_t i);
-	const T& operator[](uint64_t i) const;
+	T& operator[](uint64_t id);
+	const T& operator[](uint64_t id) const;
 	// Returns a standalone object allowing access to the underlying data
 	Ref<T> getRef(uint64_t id);
 	// Returns the data at a specific place in the data vector (not an ID)
 	T& getDataAt(uint64_t i);
 	// Check if the data behind the pointer is the same
-	bool isValid(uint64_t i, uint64_t validity) const;
+	bool isValid(uint64_t id, uint64_t validity) const;
 	// Returns the ID of the ith element of the data array
 	uint64_t getID(uint64_t i) const;
 	// Returns the ith object and id
@@ -114,14 +114,11 @@ template<typename T>
 inline void IndexVector<T>::erase(uint64_t id)
 {
 	--data_size;
-	uint64_t current_data_id = ids[id];
-	std::swap(data[data_size], data[current_data_id]);
-
+	const uint64_t current_data_id = ids[id];
 	const uint64_t last_obj_id = rids[data_size];
-	rids[current_data_id] = last_obj_id;
-	rids[data_size] = id;
-	ids[last_obj_id] = current_data_id;
-	ids[id] = data_size;
+	std::swap(data[data_size], data[current_data_id]);
+	std::swap(rids[data_size], rids[current_data_id]);
+	std::swap(ids[last_obj_id], ids[id]);
 }
 
 template<typename T>
