@@ -23,7 +23,7 @@ Simple `constant indexed vector` header only library, requires C++11.
 
 ```c++
 // Create the vector
-civ::IndexVector<int32_t> v;
+civ::Vector<int32_t> v;
 
 // Add objects
 const uint64_t id_1 = v.push_back(2);

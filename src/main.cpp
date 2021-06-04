@@ -4,7 +4,7 @@
 
 int32_t main()
 {
-    civ::IndexVector<int32_t> v;
+    civ::Vector<int32_t> v;
     
     const uint64_t id_1 = v.push_back(2);
     const uint64_t id_2 = v.push_back(3);
@@ -19,7 +19,7 @@ int32_t main()
 
     civ::Ref<int32_t> ref = v.getRef(id_2);
     std::cout << *ref << std::endl;
-    
+
     for (int32_t i : v) {
         std::cout << i << std::endl;
     }

@@ -50,9 +50,9 @@ struct SlotMetadata
 
 
 template<typename T>
-struct IndexVector
+struct Vector
 {
-	IndexVector()
+	Vector()
 		: data_size(0)
 		, op_count(0)
 	{}
@@ -101,7 +101,7 @@ private:
 
 template<typename T>
 template<typename ...Args>
-inline uint64_t IndexVector<T>::emplace_back(Args&& ...args)
+inline uint64_t Vector<T>::emplace_back(Args&& ...args)
 {
 	const Slot slot = getSlot();
 	new(&data[slot.data_id]) T(args...);
@@ -109,7 +109,7 @@ inline uint64_t IndexVector<T>::emplace_back(Args&& ...args)
 }
 
 template<typename T>
-inline uint64_t IndexVector<T>::push_back(const T& obj)
+inline uint64_t Vector<T>::push_back(const T& obj)
 {
 	const Slot slot = getSlot();
 	data[slot.data_id] = obj;
@@ -117,7 +117,7 @@ inline uint64_t IndexVector<T>::push_back(const T& obj)
 }
 
 template<typename T>
-inline void IndexVector<T>::erase(uint64_t id)
+inline void Vector<T>::erase(uint64_t id)
 {
 	--data_size;
 	const uint64_t current_data_id = ids[id];
@@ -128,85 +128,85 @@ inline void IndexVector<T>::erase(uint64_t id)
 }
 
 template<typename T>
-inline T& IndexVector<T>::operator[](uint64_t id)
+inline T& Vector<T>::operator[](uint64_t id)
 {
 	return const_cast<T&>(getAt(id));
 }
 
 template<typename T>
-inline const T& IndexVector<T>::operator[](uint64_t id) const
+inline const T& Vector<T>::operator[](uint64_t id) const
 {
 	return getAt(id);
 }
 
 template<typename T>
-inline ObjectSlot<T> IndexVector<T>::getSlotAt(uint64_t i)
+inline ObjectSlot<T> Vector<T>::getSlotAt(uint64_t i)
 {
 	return ObjectSlot<T>(metadata[i].rid, &data[i]);
 }
 
 template<typename T>
-inline ObjectSlotConst<T> IndexVector<T>::getSlotAt(uint64_t i) const
+inline ObjectSlotConst<T> Vector<T>::getSlotAt(uint64_t i) const
 {
 	return ObjectSlotConst<T>(metadata[i].rid, &data[i]);
 }
 
 template<typename T>
-inline Ref<T> IndexVector<T>::getRef(uint64_t id)
+inline Ref<T> Vector<T>::getRef(uint64_t id)
 {
 	return Ref<T>(id, this, metadata[ids[id]].op_id);
 }
 
 template<typename T>
-inline T& IndexVector<T>::getDataAt(uint64_t i)
+inline T& Vector<T>::getDataAt(uint64_t i)
 {
 	return data[i];
 }
 
 template<typename T>
-inline uint64_t IndexVector<T>::getID(uint64_t i) const
+inline uint64_t Vector<T>::getID(uint64_t i) const
 {
 	return metadata[i].rid;
 }
 
 template<typename T>
-inline uint64_t IndexVector<T>::size() const
+inline uint64_t Vector<T>::size() const
 {
 	return data_size;
 }
 
 template<typename T>
-inline typename std::vector<T>::iterator IndexVector<T>::begin()
+inline typename std::vector<T>::iterator Vector<T>::begin()
 {
 	return data.begin();
 }
 
 template<typename T>
-inline typename std::vector<T>::iterator IndexVector<T>::end()
+inline typename std::vector<T>::iterator Vector<T>::end()
 {
 	return data.begin() + data_size;
 }
 
 template<typename T>
-inline typename std::vector<T>::const_iterator IndexVector<T>::begin() const
+inline typename std::vector<T>::const_iterator Vector<T>::begin() const
 {
 	return data.begin();
 }
 
 template<typename T>
-inline typename std::vector<T>::const_iterator IndexVector<T>::end() const
+inline typename std::vector<T>::const_iterator Vector<T>::end() const
 {
 	return data.begin() + data_size;
 }
 
 template<typename T>
-inline bool IndexVector<T>::isFull() const
+inline bool Vector<T>::isFull() const
 {
 	return data_size == data.size();
 }
 
 template<typename T>
-inline Slot IndexVector<T>::createNewSlot()
+inline Slot Vector<T>::createNewSlot()
 {
 	const uint64_t old_size = data.size();
 	data.emplace_back();
@@ -216,7 +216,7 @@ inline Slot IndexVector<T>::createNewSlot()
 }
 
 template<typename T>
-inline Slot IndexVector<T>::getFreeSlot()
+inline Slot Vector<T>::getFreeSlot()
 {
 	const uint64_t reuse_id = metadata[data_size].rid;
 	metadata[data_size].op_id = op_count++;
@@ -224,7 +224,7 @@ inline Slot IndexVector<T>::getFreeSlot()
 }
 
 template<typename T>
-inline Slot IndexVector<T>::getSlot()
+inline Slot Vector<T>::getSlot()
 {
 	const Slot slot = isFull() ? createNewSlot() : getFreeSlot();
 	++data_size;
@@ -232,13 +232,13 @@ inline Slot IndexVector<T>::getSlot()
 }
 
 template<typename T>
-inline const T& IndexVector<T>::getAt(uint64_t id) const
+inline const T& Vector<T>::getAt(uint64_t id) const
 {
 	return data[ids[id]];
 }
 
 template<typename T>
-inline bool IndexVector<T>::isValid(uint64_t id, uint64_t validity) const
+inline bool Vector<T>::isValid(uint64_t id, uint64_t validity) const
 {
 	return validity == metadata[ids[id]].op_id;
 }
@@ -253,7 +253,7 @@ struct Ref
 		, validity_id(0)
 	{}
 
-	Ref(uint64_t id_, IndexVector<T>* a, uint64_t vid)
+	Ref(uint64_t id_, Vector<T>* a, uint64_t vid)
 		: id(id_)
 		, array(a)
 		, validity_id(vid)
@@ -276,7 +276,7 @@ struct Ref
 
 private:
 	uint64_t id;
-	IndexVector<T>* array;
+	Vector<T>* array;
 	uint64_t validity_id;
 };
 
