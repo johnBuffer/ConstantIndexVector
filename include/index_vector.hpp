@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include <iostream>
+
 
 namespace civ
 {
@@ -42,6 +42,13 @@ struct ObjectSlotConst
 };
 
 
+struct SlotMetadata
+{
+	uint64_t rid;
+	uint64_t op_id;
+};
+
+
 template<typename T>
 struct IndexVector
 {
@@ -80,9 +87,8 @@ struct IndexVector
 
 private:
 	std::vector<T> data;
-	std::vector<uint64_t> op_ids;
 	std::vector<uint64_t> ids;
-	std::vector<uint64_t> rids;
+	std::vector<SlotMetadata> metadata;
 	uint64_t data_size;
 	uint64_t op_count;
 
@@ -90,7 +96,7 @@ private:
 	Slot createNewSlot();
 	Slot getFreeSlot();
 	Slot getSlot();
-	const T& getAt(uint64_t i) const;
+	const T& getAt(uint64_t id) const;
 };
 
 template<typename T>
@@ -115,40 +121,40 @@ inline void IndexVector<T>::erase(uint64_t id)
 {
 	--data_size;
 	const uint64_t current_data_id = ids[id];
-	const uint64_t last_obj_id = rids[data_size];
+	const uint64_t last_obj_id = metadata[data_size].rid;
 	std::swap(data[data_size], data[current_data_id]);
-	std::swap(rids[data_size], rids[current_data_id]);
+	std::swap(metadata[data_size], metadata[current_data_id]);
 	std::swap(ids[last_obj_id], ids[id]);
 }
 
 template<typename T>
-inline T& IndexVector<T>::operator[](uint64_t i)
+inline T& IndexVector<T>::operator[](uint64_t id)
 {
-	return const_cast<T&>(getAt(i));
+	return const_cast<T&>(getAt(id));
 }
 
 template<typename T>
-inline const T& IndexVector<T>::operator[](uint64_t i) const
+inline const T& IndexVector<T>::operator[](uint64_t id) const
 {
-	return getAt(i);
+	return getAt(id);
 }
 
 template<typename T>
 inline ObjectSlot<T> IndexVector<T>::getSlotAt(uint64_t i)
 {
-	return ObjectSlot<T>(rids[i], &data[i]);
+	return ObjectSlot<T>(metadata[i].rid, &data[i]);
 }
 
 template<typename T>
 inline ObjectSlotConst<T> IndexVector<T>::getSlotAt(uint64_t i) const
 {
-	return ObjectSlotConst<T>(rids[i], &data[i]);
+	return ObjectSlotConst<T>(metadata[i].rid, &data[i]);
 }
 
 template<typename T>
 inline Ref<T> IndexVector<T>::getRef(uint64_t id)
 {
-	return Ref<T>(id, this, op_ids[id]);
+	return Ref<T>(id, this, metadata[ids[id]].op_id);
 }
 
 template<typename T>
@@ -160,7 +166,7 @@ inline T& IndexVector<T>::getDataAt(uint64_t i)
 template<typename T>
 inline uint64_t IndexVector<T>::getID(uint64_t i) const
 {
-	return rids[i];
+	return metadata[i].rid;
 }
 
 template<typename T>
@@ -205,16 +211,15 @@ inline Slot IndexVector<T>::createNewSlot()
 	const uint64_t old_size = data.size();
 	data.emplace_back();
 	ids.push_back(old_size);
-	rids.push_back(old_size);
-	op_ids.push_back(op_count++);
+	metadata.push_back({old_size, op_count++});
 	return { old_size, old_size };
 }
 
 template<typename T>
 inline Slot IndexVector<T>::getFreeSlot()
 {
-	const uint64_t reuse_id = rids[data_size];
-	op_ids[reuse_id] = op_count++;
+	const uint64_t reuse_id = metadata[data_size].rid;
+	metadata[data_size].op_id = op_count++;
 	return { reuse_id, data_size };
 }
 
@@ -227,15 +232,15 @@ inline Slot IndexVector<T>::getSlot()
 }
 
 template<typename T>
-inline const T& IndexVector<T>::getAt(uint64_t i) const
+inline const T& IndexVector<T>::getAt(uint64_t id) const
 {
-	return data[ids[i]];
+	return data[ids[id]];
 }
 
 template<typename T>
-inline bool IndexVector<T>::isValid(uint64_t i, uint64_t validity) const
+inline bool IndexVector<T>::isValid(uint64_t id, uint64_t validity) const
 {
-	return validity == op_ids[i];
+	return validity == metadata[ids[id]].op_id;
 }
 
 
