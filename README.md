@@ -10,7 +10,7 @@ Simple `constant indexed vector` header only library, requires C++11.
  - **O(1)** access
 
 ## Limitations
- - **order is not guaranteed to be maintained**
+ - **Order is not guaranteed to be maintained**
  - Objects need to support `std::move`
  - Size can only **increase**
 
