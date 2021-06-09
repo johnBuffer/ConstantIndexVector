@@ -70,8 +70,6 @@ struct Vector
 	T& getDataAt(uint64_t i);
 	// Check if the data behind the pointer is the same
 	bool isValid(uint64_t id, uint64_t validity) const;
-	// Returns the ID of the ith element of the data array
-	uint64_t getID(uint64_t i) const;
 	// Returns the ith object and id
 	ObjectSlot<T> getSlotAt(uint64_t i);
 	ObjectSlotConst<T> getSlotAt(uint64_t i) const;
@@ -91,9 +89,14 @@ public:
 	uint64_t op_count;
 
 	bool isFull() const;
+	// Returns the ID of the ith element of the data array
+	uint64_t getID(uint64_t i) const;
+	// Returns the data emplacement of an ID
+	uint64_t getDataID(uint64_t id) const;
 	Slot createNewSlot();
 	Slot getFreeSlot();
 	Slot getSlot();
+	SlotMetadata& getMetadataAt(uint64_t id);
 	const T& getAt(uint64_t id) const;
 };
 
@@ -123,6 +126,8 @@ inline void Vector<T>::erase(uint64_t id)
 	std::swap(data[data_size], data[current_data_id]);
 	std::swap(metadata[data_size], metadata[current_data_id]);
 	std::swap(ids[last_obj_id], ids[id]);
+	// Invalidate the operation ID
+	metadata[data_size].op_id = ++op_count;
 }
 
 template<typename T>
@@ -229,15 +234,27 @@ inline Slot Vector<T>::getSlot()
 }
 
 template<typename T>
+inline SlotMetadata& Vector<T>::getMetadataAt(uint64_t id)
+{
+	return metadata[getDataID(id)];
+}
+
+template<typename T>
+inline uint64_t Vector<T>::getDataID(uint64_t id) const
+{
+	return ids[id];
+}
+
+template<typename T>
 inline const T& Vector<T>::getAt(uint64_t id) const
 {
-	return data[ids[id]];
+	return data[getDataID(id)];
 }
 
 template<typename T>
 inline bool Vector<T>::isValid(uint64_t id, uint64_t validity) const
 {
-	return validity == metadata[ids[id]].op_id;
+	return validity == metadata[getDataID(id)].op_id;
 }
 
 
