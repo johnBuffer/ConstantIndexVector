@@ -78,14 +78,12 @@ struct Vector
 	// Iterators
 	typename std::vector<T>::iterator begin();
 	typename std::vector<T>::iterator end();
-
 	typename std::vector<T>::const_iterator begin() const;
 	typename std::vector<T>::const_iterator end() const;
-
 	// Number of objects in the array
 	uint64_t size() const;
 
-private:
+public:
 	std::vector<T> data;
 	std::vector<uint64_t> ids;
 	std::vector<SlotMetadata> metadata;
@@ -208,11 +206,10 @@ inline bool Vector<T>::isFull() const
 template<typename T>
 inline Slot Vector<T>::createNewSlot()
 {
-	const uint64_t old_size = data.size();
 	data.emplace_back();
-	ids.push_back(old_size);
-	metadata.push_back({old_size, op_count++});
-	return { old_size, old_size };
+	ids.push_back(data_size);
+	metadata.push_back({data_size, op_count++});
+	return { data_size, data_size };
 }
 
 template<typename T>

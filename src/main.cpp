@@ -4,24 +4,32 @@
 
 int32_t main()
 {
+    std::vector<uint64_t> ids;
     civ::Vector<int32_t> v;
     
-    const uint64_t id_1 = v.push_back(2);
-    const uint64_t id_2 = v.push_back(3);
-    const uint64_t id_3 = v.push_back(5);
-    const uint64_t id_4 = v.push_back(7);
+    for (uint32_t i(0); i<10000; ++i) {
+        const uint64_t id = v.push_back(rand()%10000);
+        ids.push_back(id);
+    }
 
-    v.erase(id_1);
-    v.erase(id_3);
+    for (uint32_t i(0); i<1000; ++i) {
+        // Choose an item to delete
+        const uint64_t id_i = rand()%v.size();
+        const uint64_t id = ids[id_i];
+        std::swap(ids[id_i], ids.back());
+        ids.pop_back();
+        v.erase(id);
+    }
 
-    std::cout << v[id_2] << std::endl;
-    std::cout << v[id_4] << std::endl;
+    for (uint32_t i(0); i<1000; ++i) {
+        const uint64_t id = v.push_back(rand()%10000);
+        ids.push_back(id);
+    }
 
-    civ::Ref<int32_t> ref = v.getRef(id_2);
-    std::cout << *ref << std::endl;
-
-    for (int32_t i : v) {
-        std::cout << i << std::endl;
+    for (uint64_t id : v.ids) {
+        if (id > 10000) {
+            std::cout << id << std::endl;
+        }
     }
 
     return 0;

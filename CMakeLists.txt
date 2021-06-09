@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-set(PROJECT_NAME ConstantIndexVector)
-project(${PROJECT_NAME} VERSION 1.0.0 LANGUAGES CXX)
+project(ConstantIndexVector VERSION 1.0.0 LANGUAGES CXX)
 
 file(GLOB source_files
 "src/main.cpp"
