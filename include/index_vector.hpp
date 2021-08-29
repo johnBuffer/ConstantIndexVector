@@ -5,26 +5,28 @@
 namespace civ
 {
 
+using ID = uint64_t;
+
 template<typename T>
 struct Ref;
 
 
 struct Slot
 {
-    uint64_t id;
-    uint64_t data_id;
+    ID id;
+    ID data_id;
 };
 
 
 template<typename T>
 struct ObjectSlot
 {
-    ObjectSlot(uint64_t id_, T* object_)
+    ObjectSlot(ID id_, T* object_)
         : id(id_)
         , object(object_)
     {}
 
-    uint64_t id;
+    ID id;
     T* object;
 };
 
@@ -32,20 +34,20 @@ struct ObjectSlot
 template<typename T>
 struct ObjectSlotConst
 {
-    ObjectSlotConst(uint64_t id_, const T* object_)
+    ObjectSlotConst(ID id_, const T* object_)
         : id(id_)
         , object(object_)
     {}
 
-    uint64_t id;
+    ID    id;
     const T* object;
 };
 
 
 struct SlotMetadata
 {
-    uint64_t rid;
-    uint64_t op_id;
+    ID rid;
+    ID op_id;
 };
 
 
@@ -58,18 +60,18 @@ struct Vector
     {}
     // Data ADD / REMOVE
     template<typename... Args>
-    uint64_t emplace_back(Args&&... args);
-    uint64_t push_back(const T& obj);
+    ID emplace_back(Args&&... args);
+    ID push_back(const T& obj);
     void erase(uint64_t id);
     // Data access by ID
-    T& operator[](uint64_t id);
-    const T& operator[](uint64_t id) const;
+    T& operator[](ID id);
+    const T& operator[](ID id) const;
     // Returns a standalone object allowing access to the underlying data
-    Ref<T> getRef(uint64_t id);
+    Ref<T> getRef(ID id);
     // Returns the data at a specific place in the data vector (not an ID)
     T& getDataAt(uint64_t i);
     // Check if the data behind the pointer is the same
-    bool isValid(uint64_t id, uint64_t validity) const;
+    bool isValid(ID id, ID validity) const;
     // Returns the ith object and id
     ObjectSlot<T> getSlotAt(uint64_t i);
     ObjectSlotConst<T> getSlotAt(uint64_t i) const;
@@ -82,21 +84,21 @@ struct Vector
     uint64_t size() const;
 
 public:
-    std::vector<T> data;
-    std::vector<uint64_t> ids;
+    std::vector<T>            data;
+    std::vector<uint64_t>     ids;
     std::vector<SlotMetadata> metadata;
-    uint64_t data_size;
-    uint64_t op_count;
+    uint64_t                  data_size;
+    uint64_t                  op_count;
 
     bool isFull() const;
     // Returns the ID of the ith element of the data array
-    uint64_t getID(uint64_t i) const;
+    ID getID(uint64_t i) const;
     // Returns the data emplacement of an ID
-    uint64_t getDataID(uint64_t id) const;
+    uint64_t getDataID(ID id) const;
     Slot createNewSlot();
     Slot getFreeSlot();
     Slot getSlot();
-    SlotMetadata& getMetadataAt(uint64_t id);
+    SlotMetadata& getMetadataAt(ID id);
     const T& getAt(uint64_t id) const;
 };
 
@@ -131,13 +133,13 @@ inline void Vector<T>::erase(uint64_t id)
 }
 
 template<typename T>
-inline T& Vector<T>::operator[](uint64_t id)
+inline T& Vector<T>::operator[](ID id)
 {
     return const_cast<T&>(getAt(id));
 }
 
 template<typename T>
-inline const T& Vector<T>::operator[](uint64_t id) const
+inline const T& Vector<T>::operator[](ID id) const
 {
     return getAt(id);
 }
@@ -155,7 +157,7 @@ inline ObjectSlotConst<T> Vector<T>::getSlotAt(uint64_t i) const
 }
 
 template<typename T>
-inline Ref<T> Vector<T>::getRef(uint64_t id)
+inline Ref<T> Vector<T>::getRef(ID id)
 {
     return Ref<T>(id, this, metadata[ids[id]].op_id);
 }
@@ -234,25 +236,25 @@ inline Slot Vector<T>::getSlot()
 }
 
 template<typename T>
-inline SlotMetadata& Vector<T>::getMetadataAt(uint64_t id)
+inline SlotMetadata& Vector<T>::getMetadataAt(ID id)
 {
     return metadata[getDataID(id)];
 }
 
 template<typename T>
-inline uint64_t Vector<T>::getDataID(uint64_t id) const
+inline uint64_t Vector<T>::getDataID(ID id) const
 {
     return ids[id];
 }
 
 template<typename T>
-inline const T& Vector<T>::getAt(uint64_t id) const
+inline const T& Vector<T>::getAt(ID id) const
 {
     return data[getDataID(id)];
 }
 
 template<typename T>
-inline bool Vector<T>::isValid(uint64_t id, uint64_t validity) const
+inline bool Vector<T>::isValid(ID id, uint64_t validity) const
 {
     return validity == metadata[getDataID(id)].op_id;
 }
@@ -267,7 +269,7 @@ struct Ref
         , validity_id(0)
     {}
 
-    Ref(uint64_t id_, Vector<T>* a, uint64_t vid)
+    Ref(ID id_, Vector<T>* a, ID vid)
         : id(id_)
         , array(a)
         , validity_id(vid)
@@ -291,13 +293,13 @@ struct Ref
     explicit
     operator bool() const
     {
-        return array->isValid(id, validity_id) && array;
+        return array && array->isValid(id, validity_id);
     }
 
 private:
-    uint64_t id;
+    ID         id;
     Vector<T>* array;
-    uint64_t validity_id;
+    ID         validity_id;
 };
 
 }
