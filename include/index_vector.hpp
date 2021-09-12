@@ -72,7 +72,7 @@ struct Vector
     T& getDataAt(uint64_t i);
     // Check if the data behind the pointer is the same
     bool isValid(ID id, ID validity) const;
-    // Returns the ith object and id
+    // Returns the ith object and global_id
     ObjectSlot<T> getSlotAt(uint64_t i);
     ObjectSlotConst<T> getSlotAt(uint64_t i) const;
     // Iterators
@@ -292,6 +292,11 @@ struct Ref
     const T& operator*() const
     {
         return (*array)[id];
+    }
+
+    civ::ID getID() const
+    {
+        return id;
     }
 
     explicit
