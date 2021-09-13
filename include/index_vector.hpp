@@ -104,11 +104,11 @@ public:
 };
 
 template<typename T>
-template<typename ...Args>
-inline uint64_t Vector<T>::emplace_back(Args&& ...args)
+template<typename ...Arg>
+inline uint64_t Vector<T>::emplace_back(Arg&& ...arg)
 {
     const Slot slot = getSlot();
-    new(&data[slot.data_id]) T(args...);
+    new(&data[slot.data_id]) T(std::forward<Arg>(arg)...);
     return slot.id;
 }
 
