@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <functional>
 
 
 namespace civ
@@ -60,28 +61,29 @@ struct Vector
     {}
     // Data ADD / REMOVE
     template<typename... Args>
-    ID emplace_back(Args&&... args);
-    ID push_back(const T& obj);
-    void erase(uint64_t id);
-    void remove_if(const std::function<bool(const T&)>& f);
+    ID                 emplace_back(Args&&... args);
+    ID                 push_back(const T& obj);
+    void               erase(ID id);
+    void               remove_if(const std::function<bool(const T&)>& f);
     // Data access by ID
-    T& operator[](ID id);
-    const T& operator[](ID id) const;
+    T&                 operator[](ID id);
+    const T&           operator[](ID id) const;
     // Returns a standalone object allowing access to the underlying data
-    Ref<T> getRef(ID id);
+    Ref<T>             getRef(ID id);
     // Returns the data at a specific place in the data vector (not an ID)
-    T& getDataAt(uint64_t i);
+    T&                 getDataAt(uint64_t i);
     // Check if the data behind the pointer is the same
-    bool isValid(ID id, ID validity) const;
+    bool               isValid(ID id, ID validity) const;
     // Returns the ith object and global_id
-    ObjectSlot<T> getSlotAt(uint64_t i);
+    ObjectSlot<T>      getSlotAt(uint64_t i);
     ObjectSlotConst<T> getSlotAt(uint64_t i) const;
     // Iterators
-    typename std::vector<T>::iterator begin();
-    typename std::vector<T>::iterator end();
+    typename std::vector<T>::iterator       begin();
+    typename std::vector<T>::iterator       end();
     typename std::vector<T>::const_iterator begin() const;
     typename std::vector<T>::const_iterator end() const;
     // Number of objects in the array
+    [[nodiscard]]
     uint64_t size() const;
 
 public:
@@ -91,24 +93,27 @@ public:
     uint64_t                  data_size;
     uint64_t                  op_count;
 
-    bool isFull() const;
+    [[nodiscard]]
+    bool          isFull() const;
     // Returns the ID of the ith element of the data array
-    ID getID(uint64_t i) const;
+    [[nodiscard]]
+    ID            getID(uint64_t i) const;
     // Returns the data emplacement of an ID
-    uint64_t getDataID(ID id) const;
-    Slot createNewSlot();
-    Slot getFreeSlot();
-    Slot getSlot();
+    [[nodiscard]]
+    uint64_t      getDataID(ID id) const;
+    Slot          createNewSlot();
+    Slot          getFreeSlot();
+    Slot          getSlot();
     SlotMetadata& getMetadataAt(ID id);
-    const T& getAt(uint64_t id) const;
+    const T&      getAt(ID id) const;
 };
 
 template<typename T>
-template<typename ...Arg>
-inline uint64_t Vector<T>::emplace_back(Arg&& ...arg)
+template<typename ...Args>
+inline uint64_t Vector<T>::emplace_back(Args&& ...args)
 {
     const Slot slot = getSlot();
-    new(&data[slot.data_id]) T(std::forward<Arg>(arg)...);
+    new(&data[slot.data_id]) T(args...);
     return slot.id;
 }
 
@@ -259,7 +264,7 @@ inline const T& Vector<T>::getAt(ID id) const
 }
 
 template<typename T>
-inline bool Vector<T>::isValid(ID id, uint64_t validity) const
+inline bool Vector<T>::isValid(ID id, ID validity) const
 {
     return validity == metadata[getDataID(id)].op_id;
 }
@@ -267,12 +272,11 @@ inline bool Vector<T>::isValid(ID id, uint64_t validity) const
 template<typename T>
 void Vector<T>::remove_if(const std::function<bool(const T&)>& f)
 {
-    uint64_t data_index = 0;
-    for (auto it = data.begin(); it != this->end(); ++it) {
-        if (f(*it)) {
-            this->erase(metadata[data_index].rid);
-            --it;
-        } else {
+    for (uint64_t data_index{ 0 }; data_index < data_size;) {
+        if (f(data[data_index])) {
+            erase(metadata[data_index].rid);
+        }
+        else {
             ++data_index;
         }
     }
