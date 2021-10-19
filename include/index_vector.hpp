@@ -74,6 +74,7 @@ struct Vector
     T&                 getDataAt(uint64_t i);
     // Check if the data behind the pointer is the same
     bool               isValid(ID id, ID validity) const;
+    uint64_t           getOperationID(ID id) const;
     // Returns the ith object and global_id
     ObjectSlot<T>      getSlotAt(uint64_t i);
     ObjectSlotConst<T> getSlotAt(uint64_t i) const;
@@ -267,6 +268,12 @@ template<typename T>
 inline bool Vector<T>::isValid(ID id, ID validity) const
 {
     return validity == metadata[getDataID(id)].op_id;
+}
+
+template<typename T>
+inline uint64_t Vector<T>::getOperationID(ID id) const
+{
+    return metadata[getDataID(id)].op_id;
 }
 
 template<typename T>
