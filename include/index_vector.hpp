@@ -11,6 +11,8 @@ using ID = uint64_t;
 template<typename T>
 struct Ref;
 
+template<typename T>
+struct PRef;
 
 struct Slot
 {
@@ -29,6 +31,13 @@ struct ObjectSlot
 
     ID id;
     T* object;
+};
+
+
+struct GenericProvider
+{
+    virtual void* getGeneric(civ::ID id) = 0;
+    virtual bool  isValid(civ::ID, uint64_t validity_id) const = 0;
 };
 
 
@@ -53,7 +62,7 @@ struct SlotMetadata
 
 
 template<typename T>
-struct Vector
+struct Vector : public GenericProvider
 {
     Vector()
         : data_size(0)
@@ -70,10 +79,11 @@ struct Vector
     const T&           operator[](ID id) const;
     // Returns a standalone object allowing access to the underlying data
     Ref<T>             getRef(ID id);
+    PRef<T>            getPRef(ID id);
     // Returns the data at a specific place in the data vector (not an ID)
     T&                 getDataAt(uint64_t i);
     // Check if the data behind the pointer is the same
-    bool               isValid(ID id, ID validity) const;
+    bool               isValid(ID id, ID validity) const override;
     uint64_t           getOperationID(ID id) const;
     // Returns the ith object and global_id
     ObjectSlot<T>      getSlotAt(uint64_t i);
@@ -83,7 +93,7 @@ struct Vector
     typename std::vector<T>::iterator       end();
     typename std::vector<T>::const_iterator begin() const;
     typename std::vector<T>::const_iterator end() const;
-    // Number of objects in the array
+    // Number of objects in the provider
     [[nodiscard]]
     uint64_t size() const;
 
@@ -96,7 +106,7 @@ public:
 
     [[nodiscard]]
     bool          isFull() const;
-    // Returns the ID of the ith element of the data array
+    // Returns the ID of the ith element of the data provider
     [[nodiscard]]
     ID            getID(uint64_t i) const;
     // Returns the data emplacement of an ID
@@ -107,6 +117,10 @@ public:
     Slot          getSlot();
     SlotMetadata& getMetadataAt(ID id);
     const T&      getAt(ID id) const;
+    [[nodiscard]]
+    void*         getGeneric(civ::ID id) override;
+
+    template<class U> friend struct PRef;
 };
 
 template<typename T>
@@ -171,6 +185,11 @@ template<typename T>
 inline Ref<T> Vector<T>::getRef(ID id)
 {
     return Ref<T>(id, this, metadata[ids[id]].op_id);
+}
+
+template<typename T>
+PRef<T> Vector<T>::getPRef(ID id) {
+    return PRef<T>{id, this, metadata[ids[id]].op_id};
 }
 
 template<typename T>
@@ -289,6 +308,12 @@ void Vector<T>::remove_if(const std::function<bool(const T&)>& f)
     }
 }
 
+template<typename T>
+void *Vector<T>::getGeneric(civ::ID id)
+{
+    return static_cast<void*>(&data[ids[id]]);
+}
+
 
 template<typename T>
 struct Ref
@@ -335,6 +360,70 @@ private:
     ID         id;
     Vector<T>* array;
     ID         validity_id;
+};
+
+
+template<typename T>
+struct PRef
+{
+    PRef()
+        : id(0)
+        , provider(nullptr)
+        , validity_id(0)
+    {}
+
+    PRef(ID id_, Vector<T>& a, ID vid)
+        : id(id_)
+        , provider(&a)
+        , validity_id(vid)
+    {}
+
+    template<typename U>
+    operator PRef<U>()
+    {
+        static_assert(std::is_base_of<U, T>::value || std::is_base_of<T, U>::value, "T does not derive from U");
+        return PRef<U>{id, provider, validity_id};
+    }
+
+    T* operator->()
+    {
+        return static_cast<T*>(provider->getGeneric(id));
+    }
+
+    T& operator*()
+    {
+        return *static_cast<T*>(provider->getGeneric(id));
+    }
+
+    const T& operator*() const
+    {
+        return *static_cast<T*>(provider->getGeneric(id));
+    }
+
+    civ::ID getID() const
+    {
+        return id;
+    }
+
+    explicit
+    operator bool() const
+    {
+        return provider && provider->isValid(id, validity_id);
+    }
+
+private:
+    ID               id;
+    GenericProvider* provider;
+    uint64_t         validity_id;
+
+    PRef(ID id_, GenericProvider* a, ID vid)
+        : id(id_)
+        , provider(a)
+        , validity_id(vid)
+    {}
+
+    template<class U> friend struct PRef;
+    template<class U> friend struct Vector;
 };
 
 }
