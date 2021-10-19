@@ -68,7 +68,7 @@ if (ref) {
 
 ## Polymorphic references
 
-It is possible to create polymorphic refernces and convert them to a reference to a base or derived class:
+It is possible to create polymorphic references and convert them to a reference to a base or derived class.
 ```c++
 // Create base class
 struct Base
