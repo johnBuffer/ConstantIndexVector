@@ -8,14 +8,15 @@ Simple `constant indexed vector` header only library, requires C++11.
  - **O(1)** deletions
  - **O(1)** additions
  - **O(1)** access
+ - Standalone references
+ - Polymorphic standalone references
 
 ## Limitations
  - **Order is not guaranteed to be maintained**
  - Objects need to support `std::move`
- - Size can only **increase**
+ - Size can only **increase** 
 
 ## Example
-
 ```c++
 // Include the header
 #include "index_vector.hpp"
@@ -63,6 +64,29 @@ if (ref) {
 } else {
     // The objects has been erased, the reference can return another value. (Won't cause a segfault if accessed)
 }
+```
+
+## Polymorphic references
+
+It is possible to create polymorphic refernces and convert them to a reference to a base or derived class:
+```c++
+// Create base class
+struct Base
+{
+    int32_t base_attribute;
+};
+// Create derived class
+struct Derived : public Base
+{
+    int32_t derived_attribute;
+};
+// Create a vector of derived class
+civ::Vector<Derived> v;
+v.emplace_back();
+// Get a reference to the object
+civ::PRef<Derived> ref_to_derived = v.getPRef(0);
+// Convert it to a reference to a base class
+civ::PRef<Base> ref_to_base = ref_to_derived;
 ```
 
 ## Overhead
