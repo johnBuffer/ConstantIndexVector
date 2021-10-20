@@ -27,7 +27,11 @@ int32_t main()
     civ::Vector<Derived> v;
     v.emplace_back();
 
-    civ::PRef<Interface> 
+//    civ::PRef<Interface> pr = v.getPRef(0);
+//    pr->firstFunction();
+
+    civ::PRef<Interface> pr = v.getPRef<Interface>(0);
+    pr->firstFunction();
 
     return 0;
 }

@@ -79,7 +79,8 @@ struct Vector : public GenericProvider
     const T&           operator[](ID id) const;
     // Returns a standalone object allowing access to the underlying data
     Ref<T>             getRef(ID id);
-    PRef<T>            getPRef(ID id);
+    template<typename U>
+    PRef<U>            getPRef(ID id);
     // Returns the data at a specific place in the data vector (not an ID)
     T&                 getDataAt(uint64_t i);
     // Check if the data behind the pointer is the same
@@ -188,8 +189,9 @@ inline Ref<T> Vector<T>::getRef(ID id)
 }
 
 template<typename T>
-PRef<T> Vector<T>::getPRef(ID id) {
-    return PRef<T>{id, this, metadata[ids[id]].op_id};
+template<typename U>
+PRef<U> Vector<T>::getPRef(ID id) {
+    return PRef<U>{id, *this, metadata[ids[id]].op_id};
 }
 
 template<typename T>
@@ -368,36 +370,39 @@ struct PRef
 {
     PRef()
         : id(0)
+        , provider_callback(nullptr)
         , provider(nullptr)
         , validity_id(0)
     {}
 
-    PRef(ID id_, Vector<T>& a, ID vid)
+    template<typename U>
+    PRef(ID id_, Vector<U>& a, ID vid)
         : id(id_)
+        , provider_callback{[&a, this]{return static_cast<T*>(&a[id]);}}
         , provider(&a)
         , validity_id(vid)
     {}
 
-    template<typename U>
-    operator PRef<U>()
-    {
-        static_assert(std::is_base_of<U, T>::value || std::is_base_of<T, U>::value, "T does not derive from U");
-        return PRef<U>{id, provider, validity_id};
-    }
+//    template<typename U>
+//    operator PRef<U>()
+//    {
+//        static_assert(std::is_base_of<U, T>::value || std::is_base_of<T, U>::value, "T does not derive from U");
+//        return PRef<U>{id, provider, validity_id};
+//    }
 
     T* operator->()
     {
-        return static_cast<T*>(provider->getGeneric(id));
+        return provider_callback();
     }
 
     T& operator*()
     {
-        return *static_cast<T*>(provider->getGeneric(id));
+        return *provider_callback();
     }
 
     const T& operator*() const
     {
-        return *static_cast<T*>(provider->getGeneric(id));
+        return *provider_callback();
     }
 
     civ::ID getID() const
@@ -412,15 +417,10 @@ struct PRef
     }
 
 private:
-    ID               id;
-    GenericProvider* provider;
-    uint64_t         validity_id;
-
-    PRef(ID id_, GenericProvider* a, ID vid)
-        : id(id_)
-        , provider(a)
-        , validity_id(vid)
-    {}
+    ID                  id;
+    std::function<T*()> provider_callback;
+    GenericProvider*    provider;
+    uint64_t            validity_id;
 
     template<class U> friend struct PRef;
     template<class U> friend struct Vector;
