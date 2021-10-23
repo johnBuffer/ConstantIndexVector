@@ -378,7 +378,7 @@ struct PRef
     template<typename U>
     PRef(ID id_, Vector<U>& a, ID vid)
         : id(id_)
-        , provider_callback{[&a, this]{return static_cast<T*>(&a[id]);}}
+        , provider_callback{[&a, id_]{return static_cast<T*>(&a[id_]);}}
         , provider(&a)
         , validity_id(vid)
     {}
