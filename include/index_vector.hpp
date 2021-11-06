@@ -129,7 +129,7 @@ template<typename ...Args>
 inline uint64_t Vector<T>::emplace_back(Args&& ...args)
 {
     const Slot slot = getSlot();
-    new(&data[slot.data_id]) T(args...);
+    new(&data[slot.data_id]) T(std::forward<Args>(args)...);
     return slot.id;
 }
 
@@ -382,13 +382,6 @@ struct PRef
         , provider(&a)
         , validity_id(vid)
     {}
-
-//    template<typename U>
-//    operator PRef<U>()
-//    {
-//        static_assert(std::is_base_of<U, T>::value || std::is_base_of<T, U>::value, "T does not derive from U");
-//        return PRef<U>{id, provider, validity_id};
-//    }
 
     T* operator->()
     {
