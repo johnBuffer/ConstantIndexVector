@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <functional>
 
 
 namespace civ
@@ -417,10 +418,10 @@ struct PRef
     }
 
 private:
-    ID                  id;
-    ProviderCallback    provider_callback;
-    GenericProvider*    provider;
-    uint64_t            validity_id;
+    ID               id;
+    ProviderCallback provider_callback;
+    GenericProvider* provider;
+    uint64_t         validity_id;
 
     template<class U> friend struct PRef;
     template<class U> friend struct Vector;
