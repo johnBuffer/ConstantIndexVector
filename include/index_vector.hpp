@@ -383,13 +383,6 @@ struct PRef
         , validity_id(vid)
     {}
 
-//    template<typename U>
-//    operator PRef<U>()
-//    {
-//        static_assert(std::is_base_of<U, T>::value || std::is_base_of<T, U>::value, "T does not derive from U");
-//        return PRef<U>{id, provider, validity_id};
-//    }
-
     T* operator->()
     {
         return provider_callback();
