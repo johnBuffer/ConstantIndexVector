@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include <functional>
 
 
 namespace civ
@@ -36,7 +35,7 @@ struct ObjectSlot
 
 struct GenericProvider
 {
-    virtual void* getGeneric(civ::ID id) = 0;
+    virtual void* get(civ::ID id) = 0;
     virtual bool  isValid(civ::ID, uint64_t validity_id) const = 0;
 };
 
@@ -73,7 +72,8 @@ struct Vector : public GenericProvider
     ID                 emplace_back(Args&&... args);
     ID                 push_back(const T& obj);
     void               erase(ID id);
-    void               remove_if(const std::function<bool(const T&)>& f);
+    template<typename TPredicate>
+    void               remove_if(TPredicate&& f);
     // Data access by ID
     T&                 operator[](ID id);
     const T&           operator[](ID id) const;
@@ -119,7 +119,7 @@ public:
     SlotMetadata& getMetadataAt(ID id);
     const T&      getAt(ID id) const;
     [[nodiscard]]
-    void*         getGeneric(civ::ID id) override;
+    void*         get(civ::ID id) override;
 
     template<class U> friend struct PRef;
 };
@@ -190,8 +190,9 @@ inline Ref<T> Vector<T>::getRef(ID id)
 
 template<typename T>
 template<typename U>
-PRef<U> Vector<T>::getPRef(ID id) {
-    return PRef<U>{id, *this, metadata[ids[id]].op_id};
+PRef<U> Vector<T>::getPRef(ID id)
+{
+    return PRef<U>{id, this, metadata[ids[id]].op_id};
 }
 
 template<typename T>
@@ -298,7 +299,8 @@ inline uint64_t Vector<T>::getOperationID(ID id) const
 }
 
 template<typename T>
-void Vector<T>::remove_if(const std::function<bool(const T&)>& f)
+template<typename TPredicate>
+void Vector<T>::remove_if(TPredicate&& f)
 {
     for (uint64_t data_index{ 0 }; data_index < data_size;) {
         if (f(data[data_index])) {
@@ -311,7 +313,7 @@ void Vector<T>::remove_if(const std::function<bool(const T&)>& f)
 }
 
 template<typename T>
-void *Vector<T>::getGeneric(civ::ID id)
+void *Vector<T>::get(civ::ID id)
 {
     return static_cast<void*>(&data[ids[id]]);
 }
@@ -368,6 +370,8 @@ private:
 template<typename T>
 struct PRef
 {
+    using ProviderCallback = T*(*)(ID, GenericProvider*, int64_t);
+
     PRef()
         : id(0)
         , provider_callback(nullptr)
@@ -376,26 +380,48 @@ struct PRef
     {}
 
     template<typename U>
-    PRef(ID id_, Vector<U>& a, ID vid)
-        : id(id_)
-        , provider_callback{[&a, id_]{return static_cast<T*>(&a[id_]);}}
-        , provider(&a)
+    PRef(ID index, Vector<U>* a, ID vid)
+        : id(index)
+        , provider_callback{PRef<T>::get<U>}
+        , provider(a)
         , validity_id(vid)
     {}
 
+    template<typename U>
+    PRef(const PRef<U>& other)
+        : id(other.id)
+        , provider_callback{PRef<T>::get<U>}
+        , provider(other.provider)
+        , validity_id(other.validity_id)
+    {
+        std::cout << "start" << std::endl;
+        const U* other_raw = other.getPointer();
+        const T* this_raw = dynamic_cast<const T*>(other_raw);
+        cast_offset = reinterpret_cast<uint64_t>(other_raw) - reinterpret_cast<uint64_t>(this_raw);
+        std::cout << "Original ptr: " << other_raw << std::endl;
+    }
+
+    template<typename U>
+    static T* get(ID index, GenericProvider* provider, int64_t offset)
+    {
+        auto recast = static_cast<U*>(getPointer(provider, index, offset));
+        std::cout << "Recast: " << recast << std::endl;
+        return dynamic_cast<T*>(recast);
+    }
+
     T* operator->()
     {
-        return provider_callback();
+        return provider_callback(id, provider, cast_offset);
     }
 
     T& operator*()
     {
-        return *provider_callback();
+        return *provider_callback(id, provider, cast_offset);
     }
 
     const T& operator*() const
     {
-        return *provider_callback();
+        return *provider_callback(id, provider, cast_offset);
     }
 
     civ::ID getID() const
@@ -411,9 +437,25 @@ struct PRef
 
 private:
     ID                  id;
-    std::function<T*()> provider_callback;
+    ProviderCallback    provider_callback;
     GenericProvider*    provider;
     uint64_t            validity_id;
+    int64_t             cast_offset = 0;
+
+    const T* getPointer() const
+    {
+        std::cout << "Get ptr, offset: " << cast_offset << std::endl;
+        const auto int_ptr = reinterpret_cast<uint64_t>(provider->get(id));
+        const auto ptr = reinterpret_cast<void*>(int_ptr + cast_offset);
+        return static_cast<const T*>(ptr);
+    }
+
+    static void* getPointer(GenericProvider* provider, civ::ID id, int64_t offset)
+    {
+        const auto int_ptr = reinterpret_cast<uint64_t>(provider->get(id));
+        const auto ptr = reinterpret_cast<void*>(int_ptr + offset);
+        return ptr;
+    }
 
     template<class U> friend struct PRef;
     template<class U> friend struct Vector;
