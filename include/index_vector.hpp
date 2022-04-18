@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include <functional>
 
 
 namespace civ
@@ -36,7 +35,14 @@ struct ObjectSlot
 
 struct GenericProvider
 {
+    virtual ~GenericProvider()
+    {
+
+    }
+
     virtual void* get(civ::ID id) = 0;
+
+    [[nodiscard]]
     virtual bool  isValid(civ::ID, uint64_t validity_id) const = 0;
 };
 
@@ -68,12 +74,19 @@ struct Vector : public GenericProvider
         : data_size(0)
         , op_count(0)
     {}
+
+    ~Vector() override = default;
+
     // Data ADD / REMOVE
     template<typename... Args>
     ID                 emplace_back(Args&&... args);
     ID                 push_back(const T& obj);
+    [[nodiscard]]
+    ID                 getNextID() const;
     void               erase(ID id);
-    void               remove_if(const std::function<bool(const T&)>& f);
+    template<typename TPredicate>
+    void               remove_if(TPredicate&& f);
+    void               clear();
     // Data access by ID
     T&                 operator[](ID id);
     const T&           operator[](ID id) const;
@@ -84,7 +97,9 @@ struct Vector : public GenericProvider
     // Returns the data at a specific place in the data vector (not an ID)
     T&                 getDataAt(uint64_t i);
     // Check if the data behind the pointer is the same
+    [[nodiscard]]
     bool               isValid(ID id, ID validity) const override;
+    [[nodiscard]]
     uint64_t           getOperationID(ID id) const;
     // Returns the ith object and global_id
     ObjectSlot<T>      getSlotAt(uint64_t i);
@@ -121,6 +136,9 @@ public:
     [[nodiscard]]
     void*         get(civ::ID id) override;
 
+    template<typename TCallback>
+    void foreach(TCallback&& callback);
+
     template<class U> friend struct PRef;
 };
 
@@ -148,6 +166,8 @@ inline void Vector<T>::erase(ID id)
     const uint64_t data_index = ids[id];
     // Check if the object has been already erased
     if (data_index >= data_size) { return; }
+    // Destroy the object
+    data[data_index].~T();
     // Swap the object at the end
     --data_size;
     const uint64_t last_id = metadata[data_size].rid;
@@ -191,7 +211,7 @@ inline Ref<T> Vector<T>::getRef(ID id)
 template<typename T>
 template<typename U>
 PRef<U> Vector<T>::getPRef(ID id) {
-    return PRef<U>{id, *this, metadata[ids[id]].op_id};
+    return PRef<U>{id, this, metadata[ids[id]].op_id};
 }
 
 template<typename T>
@@ -298,22 +318,51 @@ inline uint64_t Vector<T>::getOperationID(ID id) const
 }
 
 template<typename T>
-void Vector<T>::remove_if(const std::function<bool(const T&)>& f)
+template<typename TPredicate>
+void Vector<T>::remove_if(TPredicate&& f)
 {
     for (uint64_t data_index{ 0 }; data_index < data_size;) {
         if (f(data[data_index])) {
             erase(metadata[data_index].rid);
         }
         else {
-            ++data_index;
+            data_index++;
         }
     }
+}
+
+template<typename T>
+ID Vector<T>::getNextID() const {
+    return isFull() ? data_size : metadata[data_size].rid;
 }
 
 template<typename T>
 void *Vector<T>::get(civ::ID id)
 {
     return static_cast<void*>(&data[ids[id]]);
+}
+
+template<typename T>
+void Vector<T>::clear()
+{
+    ids.clear();
+    data.clear();
+    metadata.clear();
+    for (SlotMetadata& slm : metadata) {
+        slm.rid   = 0;
+        slm.op_id = ++op_count;
+    }
+    data_size = 0;
+}
+
+template<typename T>
+template<typename TCallback>
+void Vector<T>::foreach(TCallback &&callback) {
+    // Use index based for to allow data creation during iteration
+    const uint64_t current_size = data_size;
+    for (uint64_t i{0}; i<current_size; i++) {
+        callback(data[i]);
+    }
 }
 
 
@@ -333,6 +382,11 @@ struct Ref
     {}
 
     T* operator->()
+    {
+        return &(*array)[id];
+    }
+
+    const T* operator->() const
     {
         return &(*array)[id];
     }
@@ -358,7 +412,7 @@ struct Ref
         return array && array->isValid(id, validity_id);
     }
 
-private:
+public:
     ID         id;
     Vector<T>* array;
     ID         validity_id;
@@ -378,17 +432,26 @@ struct PRef
     {}
 
     template<typename U>
-    PRef(ID index, Vector<U>& a, ID vid)
+    PRef(ID index, Vector<U>* a, ID vid)
         : id(index)
         , provider_callback{PRef<T>::get<U>}
-        , provider(&a)
+        , provider(a)
         , validity_id(vid)
     {}
 
     template<typename U>
+    PRef(const PRef<U>& other)
+        : id(other.id)
+        , provider_callback{PRef<T>::get<U>}
+        , provider(other.provider)
+        , validity_id(other.validity_id)
+    {
+    }
+
+    template<typename U>
     static T* get(ID index, GenericProvider* provider)
     {
-        return static_cast<T*>(static_cast<U*>(provider->get(index)));
+        return dynamic_cast<T*>(static_cast<U*>(provider->get(index)));
     }
 
     T* operator->()
@@ -418,10 +481,10 @@ struct PRef
     }
 
 private:
-    ID               id;
-    ProviderCallback provider_callback;
-    GenericProvider* provider;
-    uint64_t         validity_id;
+    ID                  id;
+    ProviderCallback    provider_callback;
+    GenericProvider*    provider;
+    uint64_t            validity_id;
 
     template<class U> friend struct PRef;
     template<class U> friend struct Vector;
