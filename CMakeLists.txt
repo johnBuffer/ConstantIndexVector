@@ -14,7 +14,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 add_executable(${PROJECT_NAME} ${WIN32_GUI} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE "include")
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 
 target_compile_options(${PROJECT_NAME} PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>

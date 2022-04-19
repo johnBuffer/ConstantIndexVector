@@ -75,7 +75,16 @@ struct Vector : public GenericProvider
         , op_count(0)
     {}
 
-    ~Vector() override = default;
+    ~Vector() override
+    {
+        // Since we already explicitly destroyed objects >= data_size index
+        // the compiler will complain when double freeing these objects.
+        // The quick fix for now is to fill these places with default initialized objects
+        const uint64_t capacity = data.size();
+        for (uint64_t i{data_size}; i<capacity; ++i) {
+            new(&data[i]) T();
+        }
+    }
 
     // Data ADD / REMOVE
     template<typename... Args>
@@ -112,6 +121,9 @@ struct Vector : public GenericProvider
     // Number of objects in the provider
     [[nodiscard]]
     uint64_t size() const;
+
+    [[nodiscard]]
+    ID getValidityID(ID id) const;
 
 public:
     std::vector<T>            data;
@@ -365,6 +377,11 @@ void Vector<T>::foreach(TCallback &&callback) {
     }
 }
 
+template<typename T>
+ID Vector<T>::getValidityID(ID id) const
+{
+    return metadata[ids[id]].op_id;
+}
 
 template<typename T>
 struct Ref
