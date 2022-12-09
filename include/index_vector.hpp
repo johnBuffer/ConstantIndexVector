@@ -22,18 +22,48 @@ class Ref
 {
 public:
     Ref() = default;
+    Ref(ID id, ID validity_id, IndexVector<TObjectType>* vector)
+        : m_id{id}
+        , m_validity_id{validity_id}
+        , m_vector{vector}
+    {}
 
     TObjectType* operator->()
     {
-        return (*vector)[m_id];
+        return &(*m_vector)[m_id];
     }
 
-    bool operator(bool)()
+    const TObjectType* operator->() const
+    {
+        return &(*m_vector)[m_id];
+    }
+
+    TObjectType& operator*()
+    {
+        return (*m_vector)[m_id];
+    }
+
+    const TObjectType& operator*() const
+    {
+        return (*m_vector)[m_id];
+    }
+
+    [[nodiscard]]
+    ID getID() const
+    {
+        return m_id;
+    }
+
+    explicit
+    operator bool() const
+    {
+        return m_vector && m_vector->isValid(m_id, m_validity_id);
+    }
 
 private:
-    ID m_id;
-    ID validity_id;
-    IndexVector<TObjectType>* vector;
+    ID                        m_id          = 0;
+    ID                        m_validity_id = 0;
+    IndexVector<TObjectType>* m_vector      = nullptr;
 };
 
 template<typename TObjectType>
@@ -63,6 +93,8 @@ public:
         const ID data_id      = indexes[id];
         const ID last_data_id = data.size() - 1;
         const ID last_id      = metadata[last_data_id].rid;
+        // Invalidate metadata
+        metadata[data_id].validity_id = operation_count++;
         // Swap the object to delete with the object at the end
         std::swap(data[data_id], data[last_data_id]);
         std::swap(metadata[data_id], metadata[last_data_id]);
@@ -101,6 +133,17 @@ public:
     size_t size() const
     {
         return data.size();
+    }
+
+    Ref<TObjectType> getRef(ID id)
+    {
+        return {id, metadata[indexes[id]].validity_id, this};
+    }
+
+    [[nodiscard]]
+    bool isValid(ID id, ID validity_id) const
+    {
+        return validity_id == metadata[indexes[id]].validity_id;
     }
 
     typename std::vector<TObjectType>::iterator begin() noexcept
