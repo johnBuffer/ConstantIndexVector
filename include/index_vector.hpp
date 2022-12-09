@@ -13,6 +13,17 @@ struct Metadata
     ID rid         = 0;
 };
 
+template<TObjectType>
+class Ref
+{
+public:
+    Ref() = default;
+
+private:
+    ID m_id;
+
+};
+
 template<typename TObjectType>
 class IndexVector
 {
@@ -78,6 +89,26 @@ public:
     size_t size() const
     {
         return data.size();
+    }
+
+    typename std::vector<TObjectType>::iterator begin() noexcept
+    {
+        return data.begin();
+    }
+
+    typename std::vector<TObjectType>::iterator end() noexcept
+    {
+        return data.end();
+    }
+
+    typename std::vector<TObjectType>::const_iterator begin() const noexcept
+    {
+        return data.begin();
+    }
+
+    typename std::vector<TObjectType>::const_iterator end() const noexcept
+    {
+        return data.end();
     }
 
 private:

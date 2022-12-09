@@ -3,7 +3,7 @@
 
 struct TestStruct
 {
-    TestStruct() = default;
+    explicit
     TestStruct(int32_t i)
         : data{i}
     {}
@@ -19,10 +19,16 @@ struct TestStruct
 int32_t main()
 {
     civ::IndexVector<TestStruct> v;
-    const auto id = v.emplace_back(3);
-    //v.emplace_back(5);
-    std::cout << id << std::endl;
-    //v.erase(id);
+    v.emplace_back(3);
+    v.emplace_back(5);
+    v.emplace_back(7);
+    v.emplace_back(11);
+
+    v.erase(0);
+
+    for (auto& o : v) {
+        std::cout << o.data << std::endl;
+    }
 
     std::cout << "END" << std::endl;
 
