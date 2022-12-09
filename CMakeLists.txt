@@ -1,15 +1,15 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.20)
 project(ConstantIndexVector VERSION 1.0.0 LANGUAGES CXX)
 
 file(GLOB source_files
-"src/main.cpp"
+    "src/main.cpp"
 )
 
 set(SOURCES ${source_files})
 
 # Set build type
 if(NOT CMAKE_BUILD_TYPE)
-set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
 
 add_executable(${PROJECT_NAME} ${WIN32_GUI} ${SOURCES})
