@@ -13,15 +13,27 @@ struct Metadata
     ID rid         = 0;
 };
 
-template<TObjectType>
+
+template<typename TObjectType>
+class IndexVector;
+
+template<typename TObjectType>
 class Ref
 {
 public:
     Ref() = default;
 
+    TObjectType* operator->()
+    {
+        return (*vector)[m_id];
+    }
+
+    bool operator(bool)()
+
 private:
     ID m_id;
-
+    ID validity_id;
+    IndexVector<TObjectType>* vector;
 };
 
 template<typename TObjectType>
