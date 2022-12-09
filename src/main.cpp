@@ -11,9 +11,14 @@ struct Interface
     virtual void firstFunction() = 0;
 };
 
-struct Derived : public Base, public Interface
+struct Derived final : public Base, public Interface
 {
     float a_float = 3.0f;
+
+    ~Derived()
+    {
+        std::cout << "Destructor" << std::endl;
+    }
 
     void firstFunction() override
     {
@@ -21,17 +26,21 @@ struct Derived : public Base, public Interface
     }
 };
 
-
+// TODO: Use pop_back() and vector API
 int32_t main()
 {
     civ::Vector<Derived> v;
-    v.emplace_back();
 
-//    civ::PRef<Interface> pr = v.getPRef(0);
-//    pr->firstFunction();
+    std::cout << "Create" << std::endl;
+    for (uint32_t i{32}; i--;) {
+        v.emplace_back();
+    }
 
-    civ::PRef<Interface> pr = v.getPRef<Interface>(0);
-    pr->firstFunction();
+    std::cout << "Remove" << std::endl;
+
+    v.erase(15);
+
+    std::cout << "Done" << std::endl;
 
     return 0;
 }

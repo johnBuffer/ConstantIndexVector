@@ -80,10 +80,10 @@ struct Vector : public GenericProvider
         // Since we already explicitly destroyed objects >= data_size index
         // the compiler will complain when double freeing these objects.
         // The quick fix for now is to fill these places with default initialized objects
-        const uint64_t capacity = data.size();
+        /*const uint64_t capacity = data.size();
         for (uint64_t i{data_size}; i<capacity; ++i) {
             new(&data[i]) T();
-        }
+        }*/
     }
 
     // Data ADD / REMOVE
@@ -179,13 +179,17 @@ inline void Vector<T>::erase(ID id)
     // Check if the object has been already erased
     if (data_index >= data_size) { return; }
     // Destroy the object
-    data[data_index].~T();
+    //data[data_index].~T();
     // Swap the object at the end
     --data_size;
     const uint64_t last_id = metadata[data_size].rid;
     std::swap(data[data_size], data[data_index]);
     std::swap(metadata[data_size], metadata[data_index]);
     std::swap(ids[last_id], ids[id]);
+    // Pop
+    data.pop_back();
+    metadata.pop_back();
+    ids.pop_back();
     // Invalidate the operation ID
     metadata[data_size].op_id = ++op_count;
 }
