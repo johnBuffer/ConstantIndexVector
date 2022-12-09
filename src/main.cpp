@@ -1,17 +1,26 @@
 #include "index_vector.hpp"
 #include <iostream>
 
-// TODO: Use pop_back() and vector API
+struct TestStruct
+{
+    TestStruct() = default;
+    TestStruct(int32_t i)
+        : data{i}
+    {}
+
+    ~TestStruct()
+    {
+        std::cout << "Destroyed " << data << std::endl;
+    }
+
+    int32_t data = 0;
+};
+
 int32_t main()
 {
-    civ::IndexVector<int32_t> v;
-    v.push_back(0);
-
-    std::cout << v[0] << std::endl;
-    std::cout << v.size() << std::endl;
-
-    v.erase(0);
-    std::cout << v.size() << std::endl;
+    civ::IndexVector<TestStruct> v;
+    const auto id = v.emplace_back(3);
+    std::cout << id << std::endl;
 
     return 0;
 }
