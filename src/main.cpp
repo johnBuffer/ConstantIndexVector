@@ -20,7 +20,11 @@ int32_t main()
 {
     civ::IndexVector<TestStruct> v;
     const auto id = v.emplace_back(3);
+    //v.emplace_back(5);
     std::cout << id << std::endl;
+    //v.erase(id);
+
+    std::cout << "END" << std::endl;
 
     return 0;
 }

@@ -21,15 +21,17 @@ public:
 
     ID push_back(const TObjectType& object)
     {
+        const ID id = getSlot();
         data.push_back(object);
-        return getSlot();
+        return id;
     }
 
     template<typename... TArgs>
-    ID emplace_back(const TArgs&&... args)
+    ID emplace_back(TArgs&&... args)
     {
+        const ID id = getSlot();
         data.emplace_back(std::forward<TArgs>(args)...);
-        return getSlot();
+        return id;
     }
 
     void erase(ID id)
