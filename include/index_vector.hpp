@@ -166,6 +166,24 @@ public:
         return data.end();
     }
 
+    template<typename TCallback>
+    void remove_if(TCallback&& callback)
+    {
+        for (uint32_t i{0}; i < data.size();) {
+            if (callback(data[i])) {
+                erase(metadata[i].rid);
+            } else {
+                ++i;
+            }
+        }
+    }
+
+    [[nodiscard]]
+    ID getValidityID(ID id) const
+    {
+        return metadata[indexes[id]].validity_id;
+    }
+
 private:
     std::vector<TObjectType> data;
     std::vector<Metadata>    metadata;

@@ -8,10 +8,7 @@ struct TestStruct
         : data{i}
     {}
 
-    ~TestStruct()
-    {
-        std::cout << "Destroyed " << data << std::endl;
-    }
+    ~TestStruct() = default;
 
     int32_t data = 0;
 };
@@ -22,18 +19,15 @@ int32_t main()
     v.emplace_back(3);
     v.emplace_back(5);
     v.emplace_back(7);
+    v.emplace_back(9);
     v.emplace_back(11);
+    v.emplace_back(12);
 
-    auto ref = v.getRef(0);
-    std::cout << ref->data << std::endl;
-
-    v.erase(0);
-    std::cout << "Valid " << bool(ref) << std::endl;
-
-
-    for (auto& o : v) {
-        std::cout << o.data << std::endl;
+    v.remove_if([](const TestStruct& s) { return s.data % 3 == 0;});
+    for (auto& s : v) {
+        std::cout << s.data << std::endl;
     }
+    std::cout << v.size() << std::endl;
 
     std::cout << "END" << std::endl;
 
