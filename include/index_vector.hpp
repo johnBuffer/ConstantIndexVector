@@ -7,21 +7,20 @@ namespace civ
 
 using ID = uint64_t;
 
-struct Metadata
-{
-    ID validity_id = 0;
-    ID rid         = 0;
-};
-
-
+/// Forward declaration
 template<typename TObjectType>
 class IndexVector;
 
+/** Standalone object to access an object
+ *
+ * @tparam TObjectType The object's type
+ */
 template<typename TObjectType>
 class Ref
 {
 public:
     Ref() = default;
+    /// Constructor
     Ref(ID id, ID validity_id, IndexVector<TObjectType>* vector)
         : m_id{id}
         , m_validity_id{validity_id}
@@ -54,8 +53,11 @@ public:
         return m_id;
     }
 
-    explicit
-    operator bool() const
+    /** Bool operator to test against the validity of the reference
+     *
+     * @return false if uninitialized or if the object has been erased from the vector, true otherwise
+     */
+    explicit operator bool() const
     {
         return m_vector && m_vector->isValid(m_id, m_validity_id);
     }
@@ -75,7 +77,7 @@ public:
     ID push_back(const TObjectType& object)
     {
         const ID id = getSlot();
-        data.push_back(object);
+        m_data.push_back(object);
         return id;
     }
 
@@ -83,111 +85,144 @@ public:
     ID emplace_back(TArgs&&... args)
     {
         const ID id = getSlot();
-        data.emplace_back(std::forward<TArgs>(args)...);
+        m_data.emplace_back(std::forward<TArgs>(args)...);
         return id;
     }
 
     void erase(ID id)
     {
         // Fetch relevant info
-        const ID data_id      = indexes[id];
-        const ID last_data_id = data.size() - 1;
-        const ID last_id      = metadata[last_data_id].rid;
-        // Invalidate metadata
-        metadata[data_id].validity_id = operation_count++;
+        const ID data_id      = m_indexes[id];
+        const ID last_data_id = m_data.size() - 1;
+        const ID last_id      = m_metadata[last_data_id].rid;
+        // Invalidate m_metadata
+        m_metadata[data_id].validity_id = operation_count++;
         // Swap the object to delete with the object at the end
-        std::swap(data[data_id], data[last_data_id]);
-        std::swap(metadata[data_id], metadata[last_data_id]);
-        std::swap(indexes[id], indexes[last_id]);
+        std::swap(m_data[data_id], m_data[last_data_id]);
+        std::swap(m_metadata[data_id], m_metadata[last_data_id]);
+        std::swap(m_indexes[id], m_indexes[last_id]);
         // Destroy the object
-        data.pop_back();
+        m_data.pop_back();
+    }
+
+    void erase(const Ref<TObjectType>& ref)
+    {
+        erase(ref.getID());
     }
 
     ID getSlot()
     {
         const ID id = getSlotID();
-        indexes[id] = data.size();
+        m_indexes[id] = m_data.size();
         return id;
     }
 
     ID getSlotID()
     {
         // This means that we have available slots
-        if (metadata.size() > data.size()) {
-            metadata[data.size()].validity_id = operation_count++;
-            return metadata[data.size()].rid;
+        if (m_metadata.size() > m_data.size()) {
+            m_metadata[m_data.size()].validity_id = operation_count++;
+            return m_metadata[m_data.size()].rid;
         }
         // A new slot has to be created
-        const ID new_id = data.size();
-        metadata.push_back({new_id, operation_count++});
-        indexes.push_back(new_id);
+        const ID new_id = m_data.size();
+        m_metadata.push_back({new_id, operation_count++});
+        m_indexes.push_back(new_id);
         return new_id;
     }
 
     TObjectType& operator[](ID id)
     {
-        return data[indexes[id]];
+        return m_data[m_indexes[id]];
     }
 
     [[nodiscard]]
     size_t size() const
     {
-        return data.size();
+        return m_data.size();
     }
 
-    Ref<TObjectType> getRef(ID id)
+    [[nodiscard]]
+    bool empty() const
     {
-        return {id, metadata[indexes[id]].validity_id, this};
+        return m_data.empty();
+    }
+
+    [[nodiscard]]
+    size_t capacity() const
+    {
+        return m_data.capacity();
+    }
+
+    Ref<TObjectType> createRef(ID id)
+    {
+        return {id, m_metadata[m_indexes[id]].validity_id, this};
     }
 
     [[nodiscard]]
     bool isValid(ID id, ID validity_id) const
     {
-        return validity_id == metadata[indexes[id]].validity_id;
+        return validity_id == m_metadata[m_indexes[id]].validity_id;
     }
 
     typename std::vector<TObjectType>::iterator begin() noexcept
     {
-        return data.begin();
+        return m_data.begin();
     }
 
     typename std::vector<TObjectType>::iterator end() noexcept
     {
-        return data.end();
+        return m_data.end();
     }
 
     typename std::vector<TObjectType>::const_iterator begin() const noexcept
     {
-        return data.begin();
+        return m_data.begin();
     }
 
     typename std::vector<TObjectType>::const_iterator end() const noexcept
     {
-        return data.end();
+        return m_data.end();
     }
 
     template<typename TCallback>
     void remove_if(TCallback&& callback)
     {
-        for (uint32_t i{0}; i < data.size();) {
-            if (callback(data[i])) {
-                erase(metadata[i].rid);
+        for (uint32_t i{0}; i < m_data.size();) {
+            if (callback(m_data[i])) {
+                erase(m_metadata[i].rid);
             } else {
                 ++i;
             }
         }
     }
 
+    void reserve(size_t size)
+    {
+        m_data.reserve(size);
+    }
+
     [[nodiscard]]
     ID getValidityID(ID id) const
     {
-        return metadata[indexes[id]].validity_id;
+        return m_metadata[m_indexes[id]].validity_id;
+    }
+
+    TObjectType* data()
+    {
+        return m_data.data();
     }
 
 private:
-    std::vector<TObjectType> data;
-    std::vector<Metadata>    metadata;
-    std::vector<ID>          indexes;
+    struct Metadata
+    {
+        ID validity_id = 0;
+        ID rid         = 0;
+    };
+
+    std::vector<TObjectType> m_data;
+    std::vector<Metadata>    m_metadata;
+    std::vector<ID>          m_indexes;
 
     uint64_t operation_count = 0;
 };
