@@ -216,8 +216,8 @@ public:
 private:
     struct Metadata
     {
-        ID validity_id = 0;
         ID rid         = 0;
+        ID validity_id = 0;
     };
 
     std::vector<TObjectType> m_data;
