@@ -20,3 +20,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -pedantic -Werror>
 )
+
+add_executable(Tests test/test.cpp lib/catch2/catch_amalgamated.cpp)
+set_property(TARGET Tests PROPERTY CXX_STANDARD 17)
+target_include_directories(Tests PRIVATE "include" "lib")
