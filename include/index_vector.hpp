@@ -62,6 +62,15 @@ public:
         return m_vector && m_vector->isValid(m_id, m_validity_id);
     }
 
+    /** Remove the associated object in the container and invalidate the reference
+     *
+     */
+    void destroy()
+    {
+        m_vector->erase(m_id);
+        m_vector = nullptr;
+    }
+
 private:
     ID                        m_id          = 0;
     ID                        m_validity_id = 0;
@@ -131,7 +140,18 @@ public:
         return new_id;
     }
 
+    [[nodiscard]]
+    uint64_t getDataIndex(ID id) const
+    {
+        return m_indexes[id];
+    }
+
     TObjectType& operator[](ID id)
+    {
+        return m_data[m_indexes[id]];
+    }
+
+    const TObjectType& operator[](ID id) const
     {
         return m_data[m_indexes[id]];
     }
@@ -211,6 +231,26 @@ public:
     TObjectType* data()
     {
         return m_data.data();
+    }
+
+    std::vector<TObjectType>& getData()
+    {
+        return m_data;
+    }
+
+    const std::vector<TObjectType>& getData() const
+    {
+        return m_data;
+    }
+
+    [[nodiscard]]
+    ID getNextID() const
+    {
+        // This means that we have available slots
+        if (m_metadata.size() > m_data.size()) {
+            return m_metadata[m_data.size()].rid;
+        }
+        return m_data.size();;
     }
 
 private:
