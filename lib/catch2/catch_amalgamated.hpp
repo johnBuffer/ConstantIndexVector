@@ -6843,7 +6843,7 @@ namespace Catch {
     };
 
     /**
-     * Various metadata about the test case.
+     * Various m_metadata about the test case.
      *
      * A test case is uniquely identified by its (class)name and tags
      * combination, with source location being ignored, and other properties
@@ -11527,7 +11527,7 @@ namespace Catch {
         //! Represents either an assertion or a benchmark result to be handled by cumulative reporter later
         class AssertionOrBenchmarkResult {
             // This should really be a variant, but this is much faster
-            // to write and the data layout here is already terrible
+            // to write and the m_data layout here is already terrible
             // enough that we do not have to care about the object size.
             Optional<AssertionStats> m_assertion;
             Optional<BenchmarkStats<>> m_benchmark;

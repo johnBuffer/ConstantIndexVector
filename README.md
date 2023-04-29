@@ -4,7 +4,7 @@ Simple `constant indexed vector` header only library, requires C++11.
 
 ## Features
  - An `index` will always reference to the same object even after deletions or additions, as long as the object hasn't been erased (IDs are reused).
- - Contiguous data in memory (no gap between objects)
+ - Contiguous m_data in memory (no gap between objects)
  - **O(1)** deletions
  - **O(1)** additions
  - **O(1)** access
